@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мой сайт</title>
+</head>
+<body>
+    <h1 id="header">Я покакал маршмеллоу!</h1>
+    <p id="description">Это мой первый сайт!</p>
+    <button onclick="alert('Я покрякал')">Кряк</button>
+    <button onclick="skam()">Знаешь как заскамить мамонта?</button>
+    <button onclick="reset()">НЕ НАЖИМАЙ Я СТАРАЛСЯ!</button>
+    <a href="https://snipp.ru/handbk/html-colors">Это ссылкаааа!</a>
+    <!-- <img src="https://i.ytimg.com/vi/myjm5yAOH7g/maxresdefault.jpg"> -->
+     <script>
+        function skam() {
+            //#ff6347
+            document.getElementById("header").innerText = "ТЫ МАМОНТ + ЛОХ ХАХПХАХПАХПХА!🌈 ";
+            document.getElementById("description").innerHTML ="<b> Я СРУ ПО НОЧАМ И НЕ БОЛЕЮ!</b>🧙";
+            document.body.style.background = "gold"; 
+        }
+        function reset() { 
+            document.getElementById("header").innerText="Я покакал маршмеллоу!";
+            document.getElementById("description").innerText ="Это мой первый сайт!";
+            document.body.style.background = "white";
+        }
+     </script>
+</body>
+</html>
