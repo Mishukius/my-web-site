@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ASCII Pseudo-3D</title>
+  <style>
+    body {
+      background: #000;
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: monospace;
+      color: #00ced1
+    }
+    #screen {
+      white-space: pre;
+      line-height: 0.85;
+      font-size: 10px;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <pre id="screen"></pre>
+
+  <script>
+    const WIDTH = 80;
+    const HEIGHT = 40;
+
+    // Карта: 1 — стена, 0 — пусто
+    const map = [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,1],
+      [1,0,1,0,1,1,1,0,0,1],
+      [1,0,1,0,0,0,1,0,0,1],
+      [1,0,1,1,1,0,1,0,0,1],
+      [1,0,0,0,1,0,0,0,0,1],
+      [1,0,1,0,1,0,1,1,0,1],
+      [1,0,1,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,1,1,0,1],
+      [1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    let posX = 1.5;      // начальная позиция X
+    let posY = 1.5;      // начальная позиция Y
+    let dirX = -1.0;     // направление взгляда X
+    let dirY = 0.0;      // направление взгляда Y
+    let planeX = 0.0;    // плоскость камеры X (для перспективы)
+    let planeY = 0.66;   // плоскость камеры Y
+
+    const screen = document.getElementById('screen');
+
+    // Символы для "удалённости": от тёмного (близко) к светлому (далеко)
+    const shades = '█▓▒░· ';  // можно заменить на '#X+=-:. ' для классики
+
+    function render() {
+      let output = '';
+
+      for (let y = 0; y < HEIGHT; y++) {
+        for (let x = 0; x < WIDTH; x++) {
+          // Нормализуем x в [-1, 1]
+          const cameraX = 2 * x / WIDTH - 1;
+
+          // Луч в мировых координатах
+          const rayDirX = dirX + planeX * cameraX;
+          const rayDirY = dirY + planeY * cameraX;
+
+          // Текущая клетка игрока
+          let mapX = Math.floor(posX);
+          let mapY = Math.floor(posY);
+
+          // Длина шага и дельты
+          const deltaDistX = Math.abs(1 / rayDirX);
+          const deltaDistY = Math.abs(1 / rayDirY);
+
+          let sideDistX, sideDistY;
+          let stepX, stepY;
+
+          // Определяем шаг и начальное расстояние
+          if (rayDirX < 0) {
+            stepX = -1;
+            sideDistX = (posX - mapX) * deltaDistX;
+          } else {
+            stepX = 1;
+            sideDistX = (mapX + 1.0 - posX) * deltaDistX;
+          }
+
+          if (rayDirY < 0) {
+            stepY = -1;
+            sideDistY = (posY - mapY) * deltaDistY;
+          } else {
+            stepY = 1;
+            sideDistY = (mapY + 1.0 - posY) * deltaDistY;
+          }
+
+          // Алгоритм DDA — идём по клеткам до стены
+          let hit = 0;
+          let side = 0; // 0 — X-стена, 1 — Y-стена
+
+          while (hit === 0) {
+            if (sideDistX < sideDistY) {
+              sideDistX += deltaDistX;
+              mapX += stepX;
+              side = 0;
+            } else {
+              sideDistY += deltaDistY;
+              mapY += stepY;
+              side = 1;
+            }
+            if (mapX < 0 || mapY < 0 || mapX >= map[0].length || mapY >= map.length) break;
+            if (map[mapY][mapX] > 0) hit = 1;
+          }
+
+          // Расстояние до стены (для перспективы)
+          let perpWallDist;
+          if (side === 0)
+            perpWallDist = (mapX - posX + (1 - stepX) / 2) / rayDirX;
+          else
+            perpWallDist = (mapY - posY + (1 - stepY) / 2) / rayDirY;
+
+          // Высота стены на экране
+          const lineHeight = Math.floor(HEIGHT / perpWallDist);
+
+          // Ограничиваем высоту
+          const drawStart = Math.max(0, -lineHeight / 2 + HEIGHT / 2);
+          const drawEnd = Math.min(HEIGHT - 1, lineHeight / 2 + HEIGHT / 2);
+
+          // Выбираем символ по расстоянию (имитация затухания)
+          const dist = Math.min(perpWallDist, 10); // ограничим, чтобы не было 1/0
+          const shadeIndex = Math.min(shades.length - 1, Math.floor((dist / 10) * shades.length));
+          const ch = (y >= drawStart && y <= drawEnd) ? shades[shadeIndex] : ' ';
+
+          output += ch;
+        }
+        output += '\n';
+      }
+
+      screen.textContent = output;
+    }
+
+    // Управление
+    document.addEventListener('keydown', e => {
+      const moveSpeed = 0.05;
+      const rotSpeed = 0.05;
+
+      // Сохраняем копии для расчётов
+      let oldDirX, oldPlaneX;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          // Движение вперёд (проверка коллизий упрощена)
+          if (map[Math.floor(posY + dirY * moveSpeed)][Math.floor(posX + dirX * moveSpeed)] === 0) {
+            posX += dirX * moveSpeed;
+            posY += dirY * moveSpeed;
+          }
+          break;
+
+        case 'ArrowLeft':
+          // Поворот влево
+          oldDirX = dirX;
+          dirX = dirX * Math.cos(rotSpeed) - dirY * Math.sin(rotSpeed);
+          dirY = oldDirX * Math.sin(rotSpeed) + dirY * Math.cos(rotSpeed);
+          oldPlaneX = planeX;
+          planeX = planeX * Math.cos(rotSpeed) - planeY * Math.sin(rotSpeed);
+          planeY = oldPlaneX * Math.sin(rotSpeed) + planeY * Math.cos(rotSpeed);
+          break;
+
+        case 'ArrowRight':
+          // Поворот вправо
+          oldDirX = dirX;
+          dirX = dirX * Math.cos(-rotSpeed) - dirY * Math.sin(-rotSpeed);
+          dirY = oldDirX * Math.sin(-rotSpeed) + dirY * Math.cos(-rotSpeed);
+          oldPlaneX = planeX;
+          planeX = planeX * Math.cos(-rotSpeed) - planeY * Math.sin(-rotSpeed);
+          planeY = oldPlaneX * Math.sin(-rotSpeed) + planeY * Math.cos(-rotSpeed);
+          break;
+      }
+
+      render();
+      e.preventDefault();
+    });
+
+    // Первый кадр
+    render();
+    screen.focus();
+  </script>
+</body>
+</html>
