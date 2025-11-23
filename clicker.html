@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Кликер</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    button { font-size: 20px; padding: 10px 20px; margin: 10px; }
+  </style>
+</head>
+<body>
+    <h1>Мой кликер</h1>
+    <P>Очки: <span id="score">0</span></P>
+    <button onclick="press()">Клик!</button>
+  <script>
+    let score = 0;
+    function press() {
+        score += 1;
+        document.getElementById("score").innerText = score;
+        if (score >= 10) {
+            document.body.style.background = "blue";
+            document.getElementById("score").style.fontSize = "30px";  
+        }
+        if (score >= 20) {
+            document.body.style.background = "green";
+        }
+        if (score >= 5) {
+            document.getElementById("score").style.color = "pink"    
+        }
+    }
+  </script>
+</body>
+</html>
